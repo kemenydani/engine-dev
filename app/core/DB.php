@@ -63,4 +63,8 @@ class DB extends \PDO{
         return false;
     }
 
+    public static function patch($table, $param, $key){
+
+    }
+
 }

@@ -32,6 +32,10 @@ abstract class Model {
         return $model;
     }
 
+    public function commitAll(){
+        $this->changeLog = [];
+    }
+
     public function save(){
 
         if(property_exists($this, static::UNIQUE_KEY)){
@@ -41,12 +45,14 @@ abstract class Model {
         }
 
         if($model_id){
-
+            /*
             $new_model_params = self::find($model_id);
 
             foreach($new_model_params as $param => $value){
                 $this->$param = $value;
             }
+            */
+            $this->commitAll();
             return $model_id;
         }
         return false;
