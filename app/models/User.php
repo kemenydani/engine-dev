@@ -6,10 +6,10 @@ use core\Model as Model;
 
 class User extends Model
 {
-
-    const DB_TABLE = "_xyz_users";
+/*
+    const DB_TABLE = "user";
     const UNIQUE_KEY = "id";
-
+*/
     public $props = [];
     public $changeLog = [];
 
@@ -25,12 +25,7 @@ class User extends Model
 
     public static function verify_password($password, $prediction)
     {
-        return password_verify($prediction, $password);
-    }
-
-    public function __set($name, $value)
-    {
-        $this->setLog[$name] = $value;
+        //return password_verify($prediction, $password);
     }
 
 }

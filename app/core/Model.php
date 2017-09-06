@@ -6,9 +6,50 @@ use core\DB as DB;
 
 abstract class Model {
 
+    const DEFAULT_UNIQUE_KEY = 'id';
+
+    public static function getTableName()
+    {
+        $Model = (new \ReflectionClass(static::class));
+        return $Model->hasConstant('DB_TABLE') ? $Model->getConstant('DB_TABLE') : strtolower($Model->getShortName());
+    }
+
+    public static function getUniqueKey()
+    {
+        $Model = (new \ReflectionClass(static::class));
+        return $Model->hasConstant('UNIQUE_KEY') ? $Model->getConstant('UNIQUE_KEY') : self::DEFAULT_UNIQUE_KEY;
+    }
+
+    public function __set($name, $value)
+    {
+        $this->props[$name] = $value;
+        if(!in_array($name, $this->changeLog))
+        {
+            $this->changeLog[] = $name;
+        }
+    }
+
+    public function __get($name)
+    {
+        if(array_key_exists($this->props[$name]))
+        {
+            return $this->props[$name];
+        }
+    }
+
+    public function changed()
+    {
+        return (count($this->changeLog) > 0) ? true : false;
+    }
+
+    public function commitChanges()
+    {
+        $this->changeLog = [];
+    }
+
     public static function find($id){
 
-        $query = DB::instance()->query("SELECT * FROM " .static::DB_TABLE." WHERE ".static::UNIQUE_KEY." = ".$id." LIMIT 1");
+        $query = DB::instance()->query("SELECT * FROM " .self::getTableName()." WHERE ".self::getUniqueKey()." = ".$id." LIMIT 1");
 
         $model = new static();
 
@@ -26,43 +67,61 @@ abstract class Model {
 
         $model = new static();
 
-        foreach($properties as $property => $value){
+        foreach($properties as $property => $value)
+        {
             $model->$property = $value;
         }
         return $model;
     }
 
-    public function commitAll(){
-        $this->changeLog = [];
+    public function getChangedProps(){
+
+        $changedProps = [];
+
+        foreach($this->changeLog as $propName)
+        {
+            $changedProps[$propName] = $this->props[$propName];
+        }
+        return $changedProps;
     }
 
-    public function save(){
+    public function hasId(){
+        return array_key_exists(self::getUniqueKey(), $this->props);
+    }
 
-        if(property_exists($this, static::UNIQUE_KEY)){
-            $model_id = DB::instance()->update(static::DB_TABLE, $this, static::UNIQUE_KEY);
-        } else {
-            $model_id = DB::instance()->insert(static::DB_TABLE, $this);
-        }
-
-        if($model_id){
-            /*
-            $new_model_params = self::find($model_id);
-
-            foreach($new_model_params as $param => $value){
-                $this->$param = $value;
+    public function save()
+    {
+        if($this->changed())
+        {
+            if($this->hasId())
+            {
+                $model_id = DB::instance()->update(self::getTableName(), $this->getChangedProps(), self::getUniqueKey());
             }
-            */
-            $this->commitAll();
-            return $model_id;
+            else
+            {
+                $model_id = DB::instance()->insert(self::getTableName(), $this->getChangedProps());
+            }
+
+            if($model_id)
+            {
+                if(!array_key_exists(self::getUniqueKey(), $this->props))
+                {
+                    $this->props[self::getUniqueKey()] = $model_id;
+                }
+                $this->commitChanges();
+                return $model_id;
+            }
+            return false;
         }
-        return false;
     }
 
-    public static function activate(){
+    public static function activate()
+    {
 
     }
 
-    public static function deactivate(){
+    public static function deactivate()
+    {
 
     }
 

@@ -5,10 +5,12 @@ namespace Core;
 class DB extends \PDO{
 	
 	public static $_instance;
-	
+
+	const _PREFIX_= '_xyz_';
+
 	public static function instance(){
 		if(self::$_instance === null){
-            self::$_instance = new DB('mysql:host=localhost;dbname=app-dev', 'root', '');
+            self::$_instance = new DB('mysql:host=localhost;dbname=engine-dev', 'root', '');
 			self::$_instance->setAttribute( \PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION );
 			self::$_instance->exec("set names utf8");
 		}
@@ -16,6 +18,8 @@ class DB extends \PDO{
 	}
 
 	public static function insert($table, $params){
+
+	    $table = DB::_PREFIX_ . $table;
 
 	    $params = (array)$params;
 
@@ -30,22 +34,28 @@ class DB extends \PDO{
             $stmt->bindValue($current_bind, $value);
             $current_bind++;
         }
+
         if($stmt->execute()){
             return DB::instance()->lastInsertId();
         }
+
         return false;
     }
 
     public static function update($table, $params, $key){
+
+        $table = DB::_PREFIX_ . $table;
 
         $params = (array)$params;
         $id = $params[$key];
         unset($params[$key]);
 
         $names = "";
+
         foreach($params as $param => $value){
             $names .= "`" . $param . "` = ?,";
         }
+
         $names = substr($names, 0, -1);
 
         $stmt = DB::instance()->prepare("UPDATE {$table} SET {$names} WHERE ".$key." = ? ");
@@ -56,7 +66,9 @@ class DB extends \PDO{
             $stmt->bindValue($current_bind, $value);
             $current_bind++;
         }
+
         $stmt->bindValue($current_bind, $id);
+
         if($stmt->execute()){
             return $id;
         }
