@@ -15,6 +15,119 @@ abstract class Model extends \ReflectionClass {
     {
         parent::__construct(static::class);
     }
+    //KEEP
+    public function __set($propName, $propValue)
+    {
+
+        $this->setProperty($propName, $propValue);
+
+        if(!$this->loggedAsChanged($propName))
+        {
+            $this->logAsChanged($propName);
+        }
+    }
+    //KEEP
+    public function setProperty($name, $value){
+        $this->props[$name] = $value;
+    }
+    //KEEP
+    public function __get($propName)
+    {
+        if($this->hasProperty($propName))
+        {
+            return $this->getProperty($propName);
+        }
+        return null;
+    }
+    //KEEP
+    public function getProperty($propName)
+    {
+        if($this->hasProperty($propName))
+        {
+            return $this->$propName;
+        }
+        return null;
+    }
+    //KEEP
+    public function loggedAsChanged($propName)
+    {
+        return in_array($propName, $this->changeLog);
+    }
+    //KEEP
+    public function logAsChanged($propName){
+        $this->changeLog[] = $propName;
+    }
+    //KEEP
+    public function hasProperty($propName)
+    {
+        return array_key_exists($propName, $this->props) ? true : false;
+    }
+    //KEEP
+    public function hasChanges()
+    {
+        return !empty($this->changeLog) ? true : false;
+    }
+    //KEEP
+    public function clearChangeLog()
+    {
+        $this->changeLog = [];
+    }
+    //KEEP
+    public function getChangedProps(){
+
+        $changedProps = [];
+
+        foreach($this->changeLog as $propName)
+        {
+            $changedProps[$propName] = $this->props[$propName];
+        }
+        return $changedProps;
+    }
+    //KEEP
+    public function exitsInDB()
+    {
+        //TODO: check if id is not empty because it may happen that I will predefine all props without value, and this will fail
+        return $this->getProperty(self::getUniqueKey()) ? true : false;
+    }
+    //KEEP
+    public static function create($props = [])
+    {
+
+        $model = new static();
+
+        foreach($props as $propName => $propValue)
+        {
+            $model->setProperty($propName, $propValue);
+        }
+        return $model;
+    }
+    //KEEP
+    public function save()
+    {
+        if($this->hasChanges())
+        {
+            if($this->exitsInDB())
+            {
+                $db_model_id = DB::instance()->update(self::getTableName(), $this->getChangedProps(), self::getUniqueKey());
+            }
+            else
+            {
+                $db_model_id = DB::instance()->insert(self::getTableName(), $this->getChangedProps());
+            }
+
+            if($db_model_id)
+            {
+                if(!array_key_exists(self::getUniqueKey(), $this->props))
+                {
+                    $this->props[self::getUniqueKey()] = $model_id;
+                }
+                $this->clearChangeLog();
+                return $db_model_id;
+            }
+            return false;
+        }
+    }
+
 
     public static function getTableName()
     {
@@ -26,43 +139,6 @@ abstract class Model extends \ReflectionClass {
     {
         $ChildClass = (new \ReflectionClass(static::class));
         return $ChildClass->hasConstant('UNIQUE_KEY') ? $ChildClass->getConstant('UNIQUE_KEY') : self::DEFAULT_UNIQUE_KEY;
-    }
-
-    public function setProperty($name, $value){
-        $this->props[$name] = $value;
-    }
-
-    public function logProperty($name){
-        $this->changeLog[] = $name;
-    }
-
-    public function __set($name, $value)
-    {
-
-        $this->setProperty($name, $value);
-
-        if(!in_array($name, $this->changeLog))
-        {
-            $this->logProperty($name);
-        }
-    }
-
-    public function __get($name)
-    {
-        if(array_key_exists($name, $this->props[$name]))
-        {
-            return $this->props[$name];
-        }
-    }
-
-    public function isChanged()
-    {
-        return !empty($this->changeLog) ? true : false;
-    }
-
-    public function commitChanges()
-    {
-        $this->changeLog = [];
     }
 
     public static function find($id){
@@ -79,69 +155,6 @@ abstract class Model extends \ReflectionClass {
             $model->$property = $value;
         }
         return $model;
-    }
-
-    public static function create($properties = []){
-
-        $model = new static();
-
-        foreach($properties as $property => $value)
-        {
-            $model->$property = $value;
-        }
-        return $model;
-    }
-
-    public function getChangedProps(){
-
-        $changedProps = [];
-
-        foreach($this->changeLog as $propName)
-        {
-            $changedProps[$propName] = $this->props[$propName];
-        }
-        return $changedProps;
-    }
-
-    public function exitsInDB(){
-        //TODO: check if id is not empty because it may happen that I will predefine all props without value, and this will fail
-        return array_key_exists(self::getUniqueKey(), $this->props);
-    }
-
-    public function save()
-    {
-        if($this->isChanged())
-        {
-            if($this->exitsInDB())
-            {
-                $model_id = DB::instance()->update(self::getTableName(), $this->getChangedProps(), self::getUniqueKey());
-            }
-            else
-            {
-                $model_id = DB::instance()->insert(self::getTableName(), $this->getChangedProps());
-            }
-
-            if($model_id)
-            {
-                if(!array_key_exists(self::getUniqueKey(), $this->props))
-                {
-                    $this->props[self::getUniqueKey()] = $model_id;
-                }
-                $this->commitChanges();
-                return $model_id;
-            }
-            return false;
-        }
-    }
-
-    public static function activate()
-    {
-
-    }
-
-    public static function deactivate()
-    {
-
     }
 
     public static function get($params = [], $limit = null, $order = []){
