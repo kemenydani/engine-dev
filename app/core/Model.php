@@ -4,31 +4,46 @@ namespace core;
 
 use core\DB as DB;
 
-abstract class Model {
+abstract class Model extends \ReflectionClass {
 
     const DEFAULT_UNIQUE_KEY = 'id';
 
     public $props = [];
     public $changeLog = [];
 
+    public function __construct()
+    {
+        parent::__construct(static::class);
+    }
+
     public static function getTableName()
     {
-        $Model = (new \ReflectionClass(static::class));
-        return $Model->hasConstant('DB_TABLE') ? $Model->getConstant('DB_TABLE') : strtolower($Model->getShortName());
+        $ChildClass = (new \ReflectionClass(static::class));
+        return $ChildClass->hasConstant('DB_TABLE') ? $ChildClass->getConstant('DB_TABLE') : strtolower($ChildClass->getShortName());
     }
 
     public static function getUniqueKey()
     {
-        $Model = (new \ReflectionClass(static::class));
-        return $Model->hasConstant('UNIQUE_KEY') ? $Model->getConstant('UNIQUE_KEY') : self::DEFAULT_UNIQUE_KEY;
+        $ChildClass = (new \ReflectionClass(static::class));
+        return $ChildClass->hasConstant('UNIQUE_KEY') ? $ChildClass->getConstant('UNIQUE_KEY') : self::DEFAULT_UNIQUE_KEY;
+    }
+
+    public function setProperty($name, $value){
+        $this->props[$name] = $value;
+    }
+
+    public function logProperty($name){
+        $this->changeLog[] = $name;
     }
 
     public function __set($name, $value)
     {
-        $this->props[$name] = $value;
+
+        $this->setProperty($name, $value);
+
         if(!in_array($name, $this->changeLog))
         {
-            $this->changeLog[] = $name;
+            $this->logProperty($name);
         }
     }
 
@@ -40,9 +55,9 @@ abstract class Model {
         }
     }
 
-    public function changed()
+    public function isChanged()
     {
-        return (count($this->changeLog) > 0) ? true : false;
+        return !empty($this->changeLog) ? true : false;
     }
 
     public function commitChanges()
@@ -88,16 +103,16 @@ abstract class Model {
         return $changedProps;
     }
 
-    public function hasId(){
+    public function exitsInDB(){
         //TODO: check if id is not empty because it may happen that I will predefine all props without value, and this will fail
         return array_key_exists(self::getUniqueKey(), $this->props);
     }
 
     public function save()
     {
-        if($this->changed())
+        if($this->isChanged())
         {
-            if($this->hasId())
+            if($this->exitsInDB())
             {
                 $model_id = DB::instance()->update(self::getTableName(), $this->getChangedProps(), self::getUniqueKey());
             }
