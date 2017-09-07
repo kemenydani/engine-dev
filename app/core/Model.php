@@ -8,6 +8,9 @@ abstract class Model {
 
     const DEFAULT_UNIQUE_KEY = 'id';
 
+    public $props = [];
+    public $changeLog = [];
+
     public static function getTableName()
     {
         $Model = (new \ReflectionClass(static::class));
@@ -31,7 +34,7 @@ abstract class Model {
 
     public function __get($name)
     {
-        if(array_key_exists($this->props[$name]))
+        if(array_key_exists($name, $this->props[$name]))
         {
             return $this->props[$name];
         }
@@ -86,6 +89,7 @@ abstract class Model {
     }
 
     public function hasId(){
+        //TODO: check if id is not empty because it may happen that I will predefine all props without value, and this will fail
         return array_key_exists(self::getUniqueKey(), $this->props);
     }
 

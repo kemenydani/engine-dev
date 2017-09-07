@@ -10,9 +10,10 @@ class User extends Model
     const DB_TABLE = "user";
     const UNIQUE_KEY = "id";
 */
+/*
     public $props = [];
     public $changeLog = [];
-
+*/
     public static function auth()
     {
 
