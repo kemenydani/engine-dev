@@ -6,14 +6,13 @@ use core\Model as Model;
 
 class User extends Model
 {
-/*
-    const DB_TABLE = "user";
-    const UNIQUE_KEY = "id";
-*/
-/*
-    public $props = [];
-    public $changeLog = [];
-*/
+    use UserValidation;
+
+    public function __construct()
+    {
+        var_dump(User::getRulesFor('username'));
+    }
+
     public static function auth()
     {
 

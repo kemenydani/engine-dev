@@ -3,38 +3,58 @@
 namespace core;
 
 use core\DB as DB;
-use core\Validator as Validator;
 
-abstract class Model extends ToolFactory  {
+abstract class Model extends \ReflectionClass {
 
     const DEFAULT_UNIQUE_KEY = 'id';
 
-    protected $props = [];
-    protected $changeLog = [];
+    private $props = [];
+    private $changeLog = [];
 
     public function __call($methodName, $arguments){
 
         $propName = strtolower(substr($methodName, 3));
 
-        $action = substr($methodName, 0, 3);
-
-        if($action === 'get'){
-            return $this->getProperty($propName);
-        }
-        if($action === 'set'){
-            $this->setProperty($propName, $arguments[0]);
+        switch(substr($methodName, 0, 3)){
+            case 'get' :
+                return $this->getProperty($propName);
+            case 'set' :
+                $this->setProperty($propName, $arguments[0]);
+                break;
         }
     }
 
-    public function setProperty($propName, $propValue){
-        $this->props[$propName] = $propValue;
+    public function __construct()
+    {
+        parent::__construct(static::class);
+    }
+    //KEEP
+    public function __set($propName, $propValue)
+    {
+
+        $this->setProperty($propName, $propValue);
 
         if(!$this->loggedAsChanged($propName))
         {
             $this->logAsChanged($propName);
         }
     }
+    //KEEP
+    public function __get($propName)
+    {
+        if($this->hasProperty($propName))
+        {
+            return $this->getProperty($propName);
+        }
+        return null;
+    }
+    //KEEP
 
+
+    public function setProperty($name, $value){
+        $this->props[$name] = $value;
+    }
+    //KEEP
     public function getProperty($propName)
     {
         if($this->hasProperty($propName))
@@ -44,25 +64,32 @@ abstract class Model extends ToolFactory  {
         return null;
     }
 
+    /*
+    //KEEP
     public function loggedAsChanged($propName)
     {
         return in_array($propName, $this->changeLog);
     }
-
+    //KEEP
     public function logAsChanged($propName){
         $this->changeLog[] = $propName;
     }
-
+    //KEEP
+    public function hasProperty($propName)
+    {
+        return array_key_exists($propName, $this->props) ? true : false;
+    }
+    //KEEP
     public function hasChanges()
     {
         return !empty($this->changeLog) ? true : false;
     }
-
+    //KEEP
     public function clearChangeLog()
     {
         $this->changeLog = [];
     }
-
+    //KEEP
     public function getChangedProps(){
 
         $changedProps = [];
@@ -73,7 +100,13 @@ abstract class Model extends ToolFactory  {
         }
         return $changedProps;
     }
-
+    //KEEP
+    public function exitsInDB()
+    {
+        //TODO: check if id is not empty because it may happen that I will predefine all props without value, and this will fail
+        return $this->getProperty(self::getUniqueKey()) ? true : false;
+    }
+    //KEEP
     public static function create($props = [])
     {
 
@@ -85,21 +118,6 @@ abstract class Model extends ToolFactory  {
         }
         return $model;
     }
-
-    public function hasProperty($propName)
-    {
-        return array_key_exists($propName, $this->props) ? true : false;
-    }
-
-/*
-
-    //KEEP
-    public function exitsInDB()
-    {
-        //TODO: check if id is not empty because it may happen that I will predefine all props without value, and this will fail
-        return $this->getProperty(self::getUniqueKey()) ? true : false;
-    }
-
     //KEEP
     public function save()
     {
