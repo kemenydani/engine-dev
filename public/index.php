@@ -16,10 +16,18 @@ $user->username = "sno";
 $user->email = "sno@sno.com";
 $user->country_code = "HU";
 
-var_dump($user);
-
-$user->save();
+$user->getId();
 
 var_dump($user);
+
+var_dump($user->getUserName());
+
+$user->setUserName('snooooooooooo');
+
+var_dump($user);
+
+//$user->save();
+
+//var_dump($user);
 
 die();

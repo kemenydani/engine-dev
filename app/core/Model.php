@@ -11,6 +11,19 @@ abstract class Model extends \ReflectionClass {
     public $props = [];
     public $changeLog = [];
 
+    public function __call($methodName, $arguments){
+
+        $propName = strtolower(substr($methodName, 3));
+
+        switch(substr($methodName, 0, 3)){
+            case 'get' :
+                return $this->getProperty($propName);
+            case 'set' :
+                $this->setProperty($propName, $arguments[0]);
+                break;
+        }
+    }
+
     public function __construct()
     {
         parent::__construct(static::class);
@@ -44,7 +57,7 @@ abstract class Model extends \ReflectionClass {
     {
         if($this->hasProperty($propName))
         {
-            return $this->$propName;
+            return $this->props[$propName];
         }
         return null;
     }
