@@ -3,9 +3,8 @@
 namespace core;
 
 use core\DB as DB;
-use core\Validator as Validator;
 
-abstract class Model extends ToolFactory  {
+abstract class Model {
 
     const DEFAULT_UNIQUE_KEY = 'id';
 
