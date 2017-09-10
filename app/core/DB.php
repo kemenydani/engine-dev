@@ -42,6 +42,33 @@ class DB extends \PDO{
         return false;
     }
 
+    public function all($table){
+
+        $table = DB::_PREFIX_ . $table;
+
+        $query = DB::instance()->query("SELECT * FROM " . $table);
+
+        $rows = $query->fetchAll(\PDO::FETCH_OBJ);
+
+        if($rows){
+            return $rows;
+        }
+        return false;
+    }
+
+    public function find($table, $column, $value)
+    {
+        $table = DB::_PREFIX_ . $table;
+
+        $stmt = DB::instance()->prepare("SELECT * FROM {$table} WHERE ".$column." = ? LIMIT 1");
+        $stmt->bindValue(1, $value);
+
+        if($stmt->execute()){
+            return $stmt->fetch(\PDO::FETCH_OBJ);
+        }
+        return false;
+    }
+
     public static function update($table, $params, $key){
 
         $table = DB::_PREFIX_ . $table;

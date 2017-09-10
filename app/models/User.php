@@ -6,12 +6,7 @@ use core\Model as Model;
 
 class User extends Model
 {
-    use UserValidation;
-
-    public function __construct()
-    {
-        var_dump(User::getRulesFor('username'));
-    }
+    public static $_UNIQUE = 'id';
 
     public static function auth()
     {

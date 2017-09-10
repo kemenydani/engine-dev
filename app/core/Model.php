@@ -11,7 +11,8 @@ abstract class Model {
     protected $props = [];
     protected $changeLog = [];
 
-    public function __call($methodName, $arguments){
+    public function __call($methodName, $arguments)
+    {
 
         $propName = strtolower(substr($methodName, 3));
 
@@ -25,10 +26,11 @@ abstract class Model {
         }
     }
 
-    public function setProperty($propName, $propValue){
+    public function setProperty($propName, $propValue, $silent = false)
+    {
         $this->props[$propName] = $propValue;
 
-        if(!$this->loggedAsChanged($propName))
+        if(!$this->loggedAsChanged($propName) && !$silent)
         {
             $this->logAsChanged($propName);
         }
@@ -41,6 +43,11 @@ abstract class Model {
             return $this->props[$propName];
         }
         return null;
+    }
+
+    public function getProperties()
+    {
+        return isset($this->props) && !empty($this->props) ? $this->props : [];
     }
 
     public function loggedAsChanged($propName)
@@ -62,7 +69,8 @@ abstract class Model {
         $this->changeLog = [];
     }
 
-    public function getChangedProps(){
+    public function getChangedProps()
+    {
 
         $changedProps = [];
 
@@ -80,7 +88,7 @@ abstract class Model {
 
         foreach($props as $propName => $propValue)
         {
-            $model->setProperty($propName, $propValue);
+            $model->setProperty($propName, $propValue, true);
         }
         return $model;
     }
@@ -88,6 +96,60 @@ abstract class Model {
     public function hasProperty($propName)
     {
         return array_key_exists($propName, $this->props) ? true : false;
+    }
+
+    public static function all()
+    {
+        $rows = DB::instance()->all(self::getTableName());
+
+        if(!$rows) return false;
+
+        $models = [];
+
+        foreach($rows as $row){
+            $models[] = self::create($row);
+        }
+        return $models;
+    }
+
+    public static function toJSON($model){
+        return json_encode($model->getProperties(), true);
+    }
+
+    public static function allJSON(){
+
+        $models = self::all();
+
+        $modelPropCollection = [];
+
+        foreach($models as $model){
+            $modelPropCollection[] = $model->getProperties();
+        }
+
+        return json_encode($modelPropCollection, true);
+    }
+
+    static function find($uniqueKey)
+    {
+        $result = DB::instance()->find(self::getTableName(), self::getUniqueKey(), $uniqueKey);
+
+        if($result){
+            return self::create($result);
+        }
+        return null;
+    }
+
+    public static function getTableName()
+    {
+        $ChildClass = (new \ReflectionClass(static::class));
+        return $ChildClass->hasConstant('DB_TABLE') ? $ChildClass->getConstant('DB_TABLE') : strtolower($ChildClass->getShortName());
+    }
+
+    public static function getUniqueKey()
+    {
+        return static::$_UNIQUE ? static::$_UNIQUE : self::DEFAULT_UNIQUE_KEY;
+        //$ChildClass = (new \ReflectionClass(static::class));
+        //return $ChildClass->hasConstant('UNIQUE_KEY') ? $ChildClass->getConstant('UNIQUE_KEY') : self::DEFAULT_UNIQUE_KEY;
     }
 
 /*
@@ -124,19 +186,6 @@ abstract class Model {
             }
             return false;
         }
-    }
-
-
-    public static function getTableName()
-    {
-        $ChildClass = (new \ReflectionClass(static::class));
-        return $ChildClass->hasConstant('DB_TABLE') ? $ChildClass->getConstant('DB_TABLE') : strtolower($ChildClass->getShortName());
-    }
-
-    public static function getUniqueKey()
-    {
-        $ChildClass = (new \ReflectionClass(static::class));
-        return $ChildClass->hasConstant('UNIQUE_KEY') ? $ChildClass->getConstant('UNIQUE_KEY') : self::DEFAULT_UNIQUE_KEY;
     }
 
     public static function find($id){
